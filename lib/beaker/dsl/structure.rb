@@ -50,7 +50,7 @@ module Beaker
       # @param [String] my_name The name of the test to be logged.
       # @param [Proc] block The actions to be performed during this test.
       #
-      def test_name my_name, &block
+      def test_name my_name='default-test', &block
         logger.notify "\n#{my_name}\n"
         set_current_test_name(my_name)
         if block_given?
