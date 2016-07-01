@@ -242,17 +242,17 @@ module Beaker
     end
 
     describe '#instance_by_id' do
-      subject { aws.instance_by_id('my_id') }
+      subject { aws.instance_by_id('i-96ebd041') }
       it { is_expected.to be_instance_of(AWS::EC2::Instance) }
     end
 
     describe '#instances' do
       subject { aws.instances }
-      it { is_expected.to be_instance_of(AWS::EC2::InstanceCollection) }
+      it { is_expected.to be_instance_of(Aws::EC2::InstanceCollection) }
     end
 
     describe '#vpc_by_id' do
-      subject { aws.vpc_by_id('my_id') }
+      subject { aws.vpc_by_id('i-96ebd041') }
       it { is_expected.to be_instance_of(AWS::EC2::VPC) }
     end
 
@@ -262,7 +262,7 @@ module Beaker
     end
 
     describe '#security_group_by_id' do
-      subject { aws.security_group_by_id('my_id') }
+      subject { aws.security_group_by_id('i-96ebd041') }
       it { is_expected.to be_instance_of(AWS::EC2::SecurityGroup) }
     end
 
@@ -587,10 +587,10 @@ module Beaker
 
       it 'set password to instance id of the host' do
         instance_mock = Object.new
-        allow( instance_mock ).to receive(:id).and_return("i-842018")
+        allow( instance_mock ).to receive(:id).and_return("i-96ebd041")
         ns_host["instance"]=instance_mock
         enable_root_netscaler
-        expect(ns_host['ssh'][:password]).to eql("i-842018")
+        expect(ns_host['ssh'][:password]).to eql("i-96ebd041")
       end
     end
 

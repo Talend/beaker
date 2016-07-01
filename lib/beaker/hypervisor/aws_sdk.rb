@@ -1,4 +1,4 @@
-require 'aws/ec2'
+require 'aws-sdk'
 require 'set'
 require 'zlib'
 require 'beaker/hypervisor/ec2_helper'
@@ -30,12 +30,12 @@ module Beaker
         :secret_access_key => creds[:secret_key],
         :logger => Logger.new($stdout),
         :log_level => :debug,
-        :log_formatter => AWS::Core::LogFormatter.colored,
-        :max_retries => 12,
+        :log_formatter => Aws::Log::Formatter.colored,
+        # :max_retries => 12,
       }
-      AWS.config(config)
+      Aws.config.update(config)
 
-      @ec2 = AWS::EC2.new()
+      @ec2 = Aws::EC2::Client.new(region: 'us-east-1')
     end
 
     # Provision all hosts on EC2 using the AWS::EC2 API
@@ -125,14 +125,14 @@ module Beaker
     # @param [String] id The id of the instance to return
     # @return [AWS::EC2::Instance] An AWS::EC2 instance object
     def instance_by_id(id)
-      @ec2.instances[id]
+      @ec2.describe_instances({ instance_ids: [id.to_s] })
     end
 
     # Return all instances currently on ec2.
     # @see AwsSdk#instance_by_id
     # @return [AWS::EC2::InstanceCollection] An array of AWS::EC2 instance objects
     def instances
-      @ec2.instances
+      @ec2.describe_instances
     end
 
     # Provided an id return a VPC object.
@@ -348,7 +348,7 @@ module Beaker
             instance = create_instance(host, ami_spec, subnet_id)
             instances_created.push({:instance => instance, :host => host})
             break
-          rescue AWS::EC2::Errors::InsufficientInstanceCapacity => ex
+          rescue Aws::EC2::Errors::InsufficientInstanceCapacity => ex
             @logger.notify("aws-sdk: hit #{subnet_id} capacity limit; moving on")
             subnet_i = (subnet_i + 1) % shuffnets.length
           end
@@ -456,7 +456,7 @@ module Beaker
             elsif tries == 10
               raise "Instance never reached state #{status}"
             end
-          rescue AWS::EC2::Errors::InvalidInstanceID::NotFound => e
+          rescue Aws::EC2::Errors::InvalidInstanceID::NotFound => e
             @logger.debug("Instance #{name} not yet available (#{e})")
           end
           backoff_sleep(tries)
@@ -907,17 +907,11 @@ module Beaker
     # @param prefix [String] environment variable prefix
     # @return [Hash<Symbol, String>] ec2 credentials
     # @api private
-    def load_env_credentials(prefix='AWS')
-      provider = AWS::Core::CredentialProviders::ENVProvider.new prefix
-
-      if provider.set?
+    def load_env_credentials
         {
-          :access_key => provider.access_key_id,
-          :secret_key => provider.secret_access_key,
+          :access_key => ENV['AWS_ACCESS_KEY_ID'] ,
+          :secret_key => ENV['AWS_SECRET_ACCESS_KEY']
         }
-      else
-        {}
-      end
     end
     # Return a hash containing the fog credentials for EC2
     #
