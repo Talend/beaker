@@ -2,6 +2,7 @@ require 'aws-sdk'
 require 'set'
 require 'zlib'
 require 'beaker/hypervisor/ec2_helper'
+require 'pp'
 
 module Beaker
   # This is an alternate EC2 driver that implements direct API access using
@@ -125,14 +126,14 @@ module Beaker
     # @param [String] id The id of the instance to return
     # @return [AWS::EC2::Instance] An AWS::EC2 instance object
     def instance_by_id(id)
-      @ec2.describe_instances({ instance_ids: [id.to_s] })
+      @ec2.describe_instances({ instance_ids: [id.to_s] }).reservations[0].instances.first
     end
 
     # Return all instances currently on ec2.
     # @see AwsSdk#instance_by_id
     # @return [AWS::EC2::InstanceCollection] An array of AWS::EC2 instance objects
     def instances
-      @ec2.describe_instances
+      @ec2.describe_instances.reservations[0].instances
     end
 
     # Provided an id return a VPC object.
@@ -140,14 +141,14 @@ module Beaker
     # @param [String] id The id of the VPC to return
     # @return [AWS::EC2::VPC] An AWS::EC2 vpc object
     def vpc_by_id(id)
-      @ec2.vpcs[id]
+      @ec2.describe_vpcs({vpc_ids: [id]}).vpcs.first
     end
 
     # Return all VPCs currently on ec2.
     # @see AwsSdk#vpc_by_id
     # @return [AWS::EC2::VPCCollection] An array of AWS::EC2 vpc objects
     def vpcs
-      @ec2.vpcs
+      @ec2.describe_vpcs.vpcs
     end
 
     # Provided an id return a security group object
@@ -155,14 +156,14 @@ module Beaker
     # @param [String] id The id of the security group to return
     # @return [AWS::EC2::SecurityGroup] An AWS::EC2 security group object
     def security_group_by_id(id)
-      @ec2.security_groups[id]
+      @ec2.describe_security_groups(group_ids: [id]).security_groups
     end
 
     # Return all security groups currently on ec2.
     # @see AwsSdk#security_goup_by_id
     # @return [AWS::EC2::SecurityGroupCollection] An array of AWS::EC2 security group objects
     def security_groups
-      @ec2.security_groups
+      @ec2.describe_security_groups.security_groups
     end
 
     # Shutdown and destroy ec2 instances idenfitied by key that have been alive
@@ -189,7 +190,7 @@ module Beaker
                 kill_count += 1
               end
             end
-          rescue AWS::Core::Resource::NotFound, AWS::EC2::Errors => e
+          rescue Aws::EC2::Errors::ServiceError => e
             @logger.debug "Failed to remove instance: #{instance.id}, #{e}"
           end
         end
@@ -434,6 +435,8 @@ module Beaker
     # @api private
     def wait_for_status(status, instances, &block)
       # Wait for each node to reach status :running
+
+      puts status
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
         name = x[:name]
@@ -456,7 +459,7 @@ module Beaker
             elsif tries == 10
               raise "Instance never reached state #{status}"
             end
-          rescue Aws::EC2::Errors::InvalidInstanceID::NotFound => e
+          rescue Aws::EC2::Errors::ServiceError => e
             @logger.debug("Instance #{name} not yet available (#{e})")
           end
           backoff_sleep(tries)
