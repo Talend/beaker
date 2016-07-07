@@ -255,7 +255,7 @@ module Beaker
       # If we haven't defined a vpc_id then we use the default vpc for the provided region
       if !vpc_id
         @logger.notify("aws-sdk: filtering available vpcs in region by 'isDefault")
-        filtered_vpcs = region.client.describe_vpcs(:filters => [{:name => 'isDefault', :values => ['true']}])
+        filtered_vpcs = @ec2.describe_vpcs(:filters => [{:name => 'isDefault', :values => ['true']}]).vpcs
         if !filtered_vpcs[:vpc_set].empty?
           vpc_id = filtered_vpcs[:vpc_set].first[:vpc_id]
         else #there's no default vpc, use nil
@@ -264,7 +264,7 @@ module Beaker
       end
 
       # Grab the vpc object based upon provided id
-      vpc = vpc_id ? region.vpcs[vpc_id] : nil
+      vpc = vpc_id ? @ec2.describe_vpcs({ vpc_ids: [ vpc_id ]}) : nil
 
       # Grab image object
       image_id = ami[:image][image_type.to_sym]
