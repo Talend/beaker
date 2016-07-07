@@ -245,7 +245,11 @@ module Beaker
       if not image_type
         raise RuntimeError, "No snapshot/image_type provided for EC2 provisioning"
       end
+      pust amitype
+
       ami = ami_spec[amitype]
+
+      pp ami
       ami_region = ami[:region]
 
       # Main region object for ec2 operations
