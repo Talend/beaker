@@ -256,8 +256,8 @@ module Beaker
       if !vpc_id
         @logger.notify("aws-sdk: filtering available vpcs in region by 'isDefault")
         filtered_vpcs = @ec2.describe_vpcs(:filters => [{:name => 'isDefault', :values => ['true']}]).vpcs
-        if !filtered_vpcs[:vpc_set].empty?
-          vpc_id = filtered_vpcs[:vpc_set].first[:vpc_id]
+        if !filtered_vpcs.empty?
+          vpc_id = filtered_vpcs.first.vpc_id
         else #there's no default vpc, use nil
           vpc_id = nil
         end
