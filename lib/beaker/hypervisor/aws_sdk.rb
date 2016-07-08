@@ -824,9 +824,8 @@ module Beaker
     # @api private
     def ensure_ping_group(vpc)
       @logger.notify("aws-sdk: Ensure security group exists that enables ping, create if not")
-
-      group = vpc.security_groups.filter('group-name', PING_SECURITY_GROUP_NAME).first
-
+      
+      group =  @ec2.describe_security_groups({group_names: [PING_SECURITY_GROUP_NAME] }).security_groups[0]
       if group.nil?
         group = create_ping_group(vpc)
       end
