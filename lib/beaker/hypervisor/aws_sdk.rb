@@ -738,7 +738,7 @@ module Beaker
       region_keypairs_hash = my_key_pairs(keypair_name_filter)
       region_keypairs_hash.each_pair do |region, keypair_name_array|
         keypair_name_array.each do |keypair_name|
-          delete_key_pair(region, keypair_name)
+          @ec2.delete_key_pair({key_name: [keypair_name]})
         end
       end
     end
@@ -756,13 +756,13 @@ module Beaker
       keypairs_by_region = {}
       keyname_default = key_name()
       keyname_filtered = "#{name_filter}-*"
-      @ec2.regions.each do |region|
+      @ec2.describe_regions.regions.each do |region|
         if name_filter
           aws_name_filter = keyname_filtered
         else
           aws_name_filter = keyname_default
         end
-        keypair_collection = region.key_pairs.filter('key-name', aws_name_filter)
+        keypair_collection =  @ec2.describe_key_pairs({filters: [{name: 'key-name',values: [aws_name_filter]}]})
         keypair_collection.each do |keypair|
           keypairs_by_region[region] ||= []
           keypairs_by_region[region] << keypair.name
@@ -778,10 +778,10 @@ module Beaker
     #
     # @api private
     def delete_key_pair(region, pair_name)
-      kp = region.key_pairs[pair_name]
+      kp = @ec2.describe_key_pairs({key_names: [pair_name]}).key_pairs[0]
       if kp.exists?
         @logger.debug("aws-sdk: delete key pair in region: #{region.name}")
-        kp.delete()
+        @ec2.delete_key_pair({key_name: [pair_name]})
       end
     end
 
@@ -794,7 +794,7 @@ module Beaker
     def create_new_key_pair(region, pair_name)
       @logger.debug("aws-sdk: generating new key pair: #{pair_name}")
       ssh_string = public_key()
-      region.key_pairs.import(pair_name, ssh_string)
+      @ec2.import_key_pair({key_name: [pair_name], public_key_material: ssh_string})
     end
 
     # Return a reproducable security group identifier based on input ports
@@ -824,7 +824,7 @@ module Beaker
     # @api private
     def ensure_ping_group(vpc)
       @logger.notify("aws-sdk: Ensure security group exists that enables ping, create if not")
-      
+
       group =  @ec2.describe_security_groups({group_names: [PING_SECURITY_GROUP_NAME] }).security_groups[0]
       if group.nil?
         group = create_ping_group(vpc)
