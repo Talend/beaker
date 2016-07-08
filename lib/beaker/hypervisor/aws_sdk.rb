@@ -316,6 +316,8 @@ module Beaker
         :instance_initiated_shutdown_behavior => "terminate",
         :subnet => subnet_id,
       }
+
+      pp config
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
       @ec2.run_instances( config )
     end
