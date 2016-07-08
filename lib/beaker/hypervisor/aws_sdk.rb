@@ -264,7 +264,7 @@ module Beaker
       end
 
       # Grab the vpc object based upon provided id
-      vpc = vpc_id ? @ec2.describe_vpcs({ vpc_ids: [ vpc_id ]}) : nil
+      vpc = vpc_id ? @ec2.describe_vpcs({ vpc_ids: [ vpc_id ]}).vpcs[0] : nil
 
       # Grab image object
       image_id = ami[:image][image_type.to_sym]
