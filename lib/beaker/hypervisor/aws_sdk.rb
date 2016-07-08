@@ -105,9 +105,9 @@ module Beaker
     # @param [Regex] status The regular expression to match against the instance's status
     def log_instances(key = key_name, status = /running/)
       instances = []
-      @ec2.regions.each do |region|
+      @ec2.describe_regions.regions.each do |region|
         @logger.debug "Reviewing: #{region.name}"
-        @ec2.regions[region.name].instances.each do |instance|
+        @ec2.describe_instances..reservations[0].instances.each do |instance|
           if (instance.key_name =~ /#{key}/) and (instance.status.to_s =~ status)
             instances << instance
           end
@@ -176,17 +176,17 @@ module Beaker
       #examine all available regions
       kill_count = 0
       time_now = Time.now.getgm #ec2 uses GM time
-      @ec2.regions.each do |region|
+      @ec2.describe_regions.regions.each do |region|
         @logger.debug "Reviewing: #{region.name}"
         # Note: don't use instances.each here as that funtion doesn't allow proper rescue from error states
-        instances = @ec2.regions[region.name].instances
+        instances = @ec2.describe_instances.reservations[0].instances
         instances.each do |instance|
           begin
             if (instance.key_name =~ /#{key}/)
               @logger.debug "Examining #{instance.id} (keyname: #{instance.key_name}, launch time: #{instance.launch_time}, status: #{instance.status})"
               if ((time_now - instance.launch_time) >  max_age*60*60) and instance.status.to_s !~ /terminated/
                 @logger.debug "Kill! #{instance.id}: #{instance.key_name} (Current status: #{instance.status})"
-                instance.terminate()
+                @ec2.terminate_instances({instance_ids: [instance.instance_id]})
                 kill_count += 1
               end
             end
@@ -404,10 +404,7 @@ module Beaker
         end
         @logger.notify("aws-sdk: launch instances requiring no subnet")
         no_subnet_hosts.each do |host|
-          pp host
-          pp ami_spec
-
-          instance = @ec2.run_instances( {host, ami_spec, nil} )
+          instance = create_instance(host, ami_spec, nil)
           instances.push({:instance => instance, :host => host})
         end
         wait_for_status(:running, instances)
