@@ -791,10 +791,10 @@ module Beaker
     # @param [String] pair_name the name of the key to be created
     #
     # @return [AWS::EC2::KeyPair] key pair created
-    def create_new_key_pair(region, pair_name)
+    def create_new_key_pair(pair_name)
       @logger.debug("aws-sdk: generating new key pair: #{pair_name}")
       ssh_string = public_key()
-      @ec2.import_key_pair({key_name: [pair_name], public_key_material: ssh_string})
+      @ec2.import_key_pair({key_name: pair_name, public_key_material: ssh_string})
     end
 
     # Return a reproducable security group identifier based on input ports
