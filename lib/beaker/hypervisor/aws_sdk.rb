@@ -443,7 +443,7 @@ module Beaker
     def wait_for_status(status, instances, &block)
       # Wait for each node to reach status :running
 
-      puts status
+      pp instances
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
         name = x[:name]
