@@ -310,7 +310,7 @@ module Beaker
         :image_id => image_id,
         :monitoring_enabled => true,
         :key_pair => ensure_key_pair(region),
-        :security_groups => [security_group.first.group_name, ping_security_group.first.group_name],
+        :security_groups => [security_group.group_name, ping_security_group.group_name],
         :instance_type => amisize,
         :disable_api_termination => false,
         :instance_initiated_shutdown_behavior => "terminate",
