@@ -269,7 +269,7 @@ module Beaker
       # Grab image object
       image_id = ami[:image][image_type.to_sym]
       @logger.notify("aws-sdk: Checking image #{image_id} exists and getting its root device")
-      image = @ec2.describe_images( {image_ids: [ image_id ]} )
+      image = @ec2.describe_images( {image_ids: [ image_id ]} ).images.first
       if image.nil? and not image.exists?
         raise RuntimeError, "Image not found: #{image_id}"
       end
