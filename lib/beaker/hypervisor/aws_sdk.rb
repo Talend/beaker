@@ -404,7 +404,10 @@ module Beaker
         end
         @logger.notify("aws-sdk: launch instances requiring no subnet")
         no_subnet_hosts.each do |host|
-          instance = create_instance(host, ami_spec, nil)
+          pp host
+          pp ami_spec
+
+          instance = @ec2.run_instances( {host, ami_spec, nil} )
           instances.push({:instance => instance, :host => host})
         end
         wait_for_status(:running, instances)
