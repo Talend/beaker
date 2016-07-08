@@ -317,7 +317,7 @@ module Beaker
         :subnet => subnet_id,
       }
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-      region.instances.create(config)
+      @ec2.run_instances( config )
     end
 
     # For each host, create an EC2 instance in one of the specified
