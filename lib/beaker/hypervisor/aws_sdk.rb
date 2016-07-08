@@ -27,12 +27,12 @@ module Beaker
       creds = load_credentials()
 
       config = {
-        :access_key_id => creds[:access_key],
-        :secret_access_key => creds[:secret_key],
-        :logger => Logger.new($stdout),
-        :log_level => :debug,
-        :log_formatter => Aws::Log::Formatter.colored,
-        # :max_retries => 12,
+          :access_key_id => creds[:access_key],
+          :secret_access_key => creds[:secret_key],
+          :logger => Logger.new($stdout),
+          :log_level => :debug,
+          :log_formatter => Aws::Log::Formatter.colored,
+          # :max_retries => 12,
       }
       Aws.config.update(config)
 
@@ -76,7 +76,7 @@ module Beaker
     # @return [void]
     def kill_instances(instances)
       instances.each do |instance|
-       pp instance
+        pp instance
         if !instance.nil? and instance.exists?
           @logger.notify("aws-sdk: killing EC2 instance #{instance.id}")
           instance.terminate
@@ -281,47 +281,49 @@ module Beaker
       # ready for a create.
       block_device_mappings = []
       if image.root_device_type == :ebs
-      if image.root_device_type == :ebs
-        orig_bdm = image.block_device_mappings()
-        @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_hash}")
-        orig_bdm.each do |device_name, rest|
-          block_device_mappings << {
-            :device_name => device_name,
-            :ebs => {
-              # Change the default size of the root volume.
-              :volume_size => host['volume_size'] || rest[:volume_size],
-              # This is required to override the images default for
-              # delete_on_termination, forcing all volumes to be deleted once the
-              # instance is terminated.
-              :delete_on_termination => true,
+        if image.root_device_type == :ebs
+          orig_bdm = image.block_device_mappings()
+          @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_hash}")
+          orig_bdm.each do |device_name, rest|
+            block_device_mappings << {
+                :device_name => device_name,
+                :ebs => {
+                    # Change the default size of the root volume.
+                    :volume_size => host['volume_size'] || rest[:volume_size],
+                    # This is required to override the images default for
+                    # delete_on_termination, forcing all volumes to be deleted once the
+                    # instance is terminated.
+                    :delete_on_termination => true,
+                }
             }
-          }
+          end
         end
-      end
 
-      security_group = ensure_group(vpc || region, Beaker::EC2Helper.amiports(host))
-      #check if ping is enabled
-      ping_security_group = ensure_ping_group(vpc || region)
+        security_group = ensure_group(vpc || region, Beaker::EC2Helper.amiports(host))
+        #check if ping is enabled
+        ping_security_group = ensure_ping_group(vpc || region)
 
-      msg = "aws-sdk: launching %p on %p using %p/%p%s" %
+        msg = "aws-sdk: launching %p on %p using %p/%p%s" %
             [host.name, amitype, amisize, image_type,
              subnet_id ? ("in %p" % subnet_id) : '']
-      @logger.notify(msg)
-      config = {
-        :min_count => 1,
-        :max_count => 1,
-        :image_id => image_id,
-        :monitoring => { enabled: true },
-        :key_name => ensure_key_pair(region).key_name,
-        :security_groups => [security_group.group_name, ping_security_group.group_name],
-        :instance_type => amisize,
-        :disable_api_termination => false,
-        :instance_initiated_shutdown_behavior => "terminate",
-        :subnet => subnet_id,
-      }
+        @logger.notify(msg)
+        config = {
+            :min_count => 1,
+            :max_count => 1,
+            :image_id => image_id,
+            :monitoring => { enabled: true },
+            :key_name => ensure_key_pair(region).key_name,
+            :security_groups => [security_group.group_name, ping_security_group.group_name],
+            :instance_type => amisize,
+            :disable_api_termination => false,
+            :instance_initiated_shutdown_behavior => "terminate",
+            :subnet => subnet_id,
+        }
 
-      config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-      @ec2.run_instances( config )
+
+        config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
+        @ec2.run_instances( config )
+      end
     end
 
     # For each host, create an EC2 instance in one of the specified
@@ -914,10 +916,10 @@ module Beaker
     # @return [Hash<Symbol, String>] ec2 credentials
     # @api private
     def load_env_credentials
-        {
+      {
           :access_key => ENV['AWS_ACCESS_KEY_ID'] ,
           :secret_key => ENV['AWS_SECRET_ACCESS_KEY']
-        }
+      }
     end
     # Return a hash containing the fog credentials for EC2
     #
@@ -932,8 +934,8 @@ module Beaker
       raise "You must specify an aws_secret_access_key in your .fog file (#{dot_fog}) for ec2 instances!" unless default[:aws_secret_access_key]
 
       {
-        :access_key => default[:aws_access_key_id],
-        :secret_key => default[:aws_secret_access_key],
+          :access_key => default[:aws_access_key_id],
+          :secret_key => default[:aws_secret_access_key],
       }
     end
   end
