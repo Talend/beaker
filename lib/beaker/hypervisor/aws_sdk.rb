@@ -306,9 +306,10 @@ module Beaker
              subnet_id ? ("in %p" % subnet_id) : '']
       @logger.notify(msg)
       config = {
-        :count => 1,
+        :min_count => 1,
+        :max_count => 1,
         :image_id => image_id,
-        :monitoring_enabled => true,
+        :monitoring => { enabled: true },
         :key_pair => ensure_key_pair(region).key_name,
         :security_groups => [security_group.group_name, ping_security_group.group_name],
         :instance_type => amisize,
