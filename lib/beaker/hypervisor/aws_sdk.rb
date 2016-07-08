@@ -884,8 +884,7 @@ module Beaker
     def create_group(rv, ports)
       name = group_id(ports)
       @logger.notify("aws-sdk: Creating group #{name} for ports #{ports.to_s}")
-      group = @ec2.create_security_groups({groups_name: [name]})
-                                        :description => "Custom Beaker security group for #{ports.to_a}")
+      group = @ec2.create_security_groups({groups_name: [name], description: "Custom Beaker security group for #{ports.to_a}" })
 
       unless ports.is_a? Set
         ports = Set.new(ports)
