@@ -76,6 +76,7 @@ module Beaker
     # @return [void]
     def kill_instances(instances)
       instances.each do |instance|
+       pp instance
         if !instance.nil? and instance.exists?
           @logger.notify("aws-sdk: killing EC2 instance #{instance.id}")
           instance.terminate
@@ -280,6 +281,7 @@ module Beaker
       # ready for a create.
       block_device_mappings = []
       if image.root_device_type == :ebs
+      if image.root_device_type == :ebs
         orig_bdm = image.block_device_mappings()
         @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_hash}")
         orig_bdm.each do |device_name, rest|
@@ -318,7 +320,6 @@ module Beaker
         :subnet => subnet_id,
       }
 
-      pp config
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
       @ec2.run_instances( config )
     end
