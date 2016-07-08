@@ -778,7 +778,7 @@ module Beaker
     #
     # @api private
     def delete_key_pair(region, pair_name)
-      kp = @ec2.describe_key_pairs({key_names: [pair_name]}).key_pairs[0]
+      kp = @ec2.describe_key_pairs({filters: [{name: "key-name",values: [pair_name]}] }).key_pairs[0]
       if kp.exists?
         @logger.debug("aws-sdk: delete key pair in region: #{region.name}")
         @ec2.delete_key_pair({key_name: [pair_name]})
