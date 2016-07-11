@@ -289,14 +289,13 @@ module Beaker
       block_device_mappings = []
       if image.root_device_type == "ebs"
         if image.root_device_type == "ebs"
-          orig_bdm = image.block_device_mappings
-          @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm[0].to_h}")
-          orig_bdm.each do |device_name, rest|
+          orig_bdm = image.block_device_mappings[0]
+          @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_h}")
             block_device_mappings << {
-                :device_name => device_name,
+                :device_name => orig_bdm.device_name,
                 :ebs => {
                     # Change the default size of the root volume.
-                    :volume_size => host['volume_size'] || rest.ebs.volume_size,
+                    :volume_size => host['volume_size'] || orig_bdm.ebs.volume_size,
                     # This is required to override the images default for
                     # delete_on_termination, forcing all volumes to be deleted once the
                     # instance is terminated.
