@@ -322,9 +322,9 @@ module Beaker
 
 
         config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-        inst = @ec2.run_instances( config )
-        pp inst
-        inst
+        resp = @ec2.run_instances( config )
+        pp resp
+        resp
       end
     end
 
