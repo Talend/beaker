@@ -443,7 +443,7 @@ module Beaker
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
         pp x
-        name = x[:instance].instances[0].private_dns_name
+        name = x[:instance].instances[0].instance_id
         instance = x[:instance].instances[0]
 
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
@@ -455,7 +455,7 @@ module Beaker
             if block_given?
               test_result = yield instance
             else
-              test_result = instance.state.name == status
+              test_result = @ec2.describe_instance_status({instance_ids: [name]}).instance_statuses[0].instance_state.name == status
             end
             if test_result
               # Always sleep, so the next command won't cause a throttle
