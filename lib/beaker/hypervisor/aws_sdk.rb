@@ -484,7 +484,7 @@ module Beaker
     # @api private
     def add_tags
       @hosts.each do |host|
-        instance = host['instance'].reservations[0].instances[0]
+        instance = host['instance'].instances[0]
 
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
@@ -534,7 +534,7 @@ module Beaker
       # Obtain the IP addresses and dns_name for each host
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
-        instance = host['instance'].reservations[0].instances[0]
+        instance = host['instance'].instances[0]
         host['ip'] = instance.ip_address ? instance.ip_address : instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
         host['dns_name'] = instance.private_dns_name
