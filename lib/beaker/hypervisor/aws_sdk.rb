@@ -322,7 +322,9 @@ module Beaker
 
 
         config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-        @ec2.run_instances( config )
+        inst = @ec2.run_instances( config )
+        pp inst
+        inst
       end
     end
 
@@ -452,6 +454,7 @@ module Beaker
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
         # TODO: should probably be a in a shared method somewhere
+        pp instance
         for tries in 1..10
           begin
             if block_given?
