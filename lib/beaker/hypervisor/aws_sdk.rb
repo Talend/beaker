@@ -534,7 +534,7 @@ module Beaker
       # Obtain the IP addresses and dns_name for each host
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
-        instance = @ec2.describe_instances({instance_ids: [host['instance'].instances[0]]}).reservations[0].instances[0]
+        instance = @ec2.describe_instances({instance_ids: [ host['instance'].instances[0].instance_id ]}).reservations[0].instances[0]
         pp instance
         host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
