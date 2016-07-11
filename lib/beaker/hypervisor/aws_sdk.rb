@@ -237,6 +237,13 @@ module Beaker
       amisize = host['amisize'] || 'm1.small'
       vpc_id = host['vpc_id'] || @options['vpc_id'] || nil
 
+      puts "Calling create_instance"
+      puts 'with '
+      pp amitype
+      pp amisize
+      pp vpc_id
+      puts ' '
+
       if vpc_id and !subnet_id
         raise RuntimeError, "A subnet_id must be provided with a vpc_id"
       end
@@ -455,8 +462,6 @@ module Beaker
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
         # TODO: shold probably be a in a shared method somewhere
-        puts "Wait_for_statuis: instance"
-        pp instance
         for tries in 1..10
           begin
             if block_given?
