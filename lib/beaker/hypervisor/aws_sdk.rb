@@ -296,7 +296,7 @@ module Beaker
                 :device_name => device_name,
                 :ebs => {
                     # Change the default size of the root volume.
-                    :volume_size => host['volume_size'] || rest[0][:volume_size],
+                    :volume_size => host['volume_size'] || rest.ebs.volume_size,
                     # This is required to override the images default for
                     # delete_on_termination, forcing all volumes to be deleted once the
                     # instance is terminated.
