@@ -484,18 +484,42 @@ module Beaker
     # @api private
     def add_tags
       @hosts.each do |host|
-        instance = host['instance']
-        pp instance
+        instance = host['instance'].reservations[0].instances[0]
+
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
-        instance.add_tag("jenkins_build_url", :value => @options[:jenkins_build_url])
-        instance.add_tag("Name", :value => host.name)
-        instance.add_tag("department", :value => @options[:department])
-        instance.add_tag("project", :value => @options[:project])
-        instance.add_tag("created_by", :value => @options[:created_by])
+        @ec.create_tags({
+                            resources: [ instance.instance_id], # required
+                            tags: [ # required
+
+                                {
+                                    key: "jenkins_build_url",
+                                    value: @options[:jenkins_build_url],
+                                },
+                                {
+                                    key: "Name",
+                                    value: host.name,
+                                },
+                                {
+                                    key: "department",
+                                    value: @options[:project],
+                                },
+                                {
+                                    key: "project",
+                                    value: @options[:department],
+                                },
+                                {
+                                    key: "created_by",
+                                    value: @options[:created_by],
+                                },
+                            ],
+                        })
 
         host[:host_tags].each do |name, val|
-          instance.add_tag(name.to_s, :value => val)
+          @ec.create_tags({
+                              resources: [ instance.instance_id], # required
+                              tags: [ {key: name.to_s, value: val } ]
+                          })
         end
       end
 
@@ -510,10 +534,10 @@ module Beaker
       # Obtain the IP addresses and dns_name for each host
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
-        instance = host['instance']
+        instance = host['instance'].reservations[0].instances[0]
         host['ip'] = instance.ip_address ? instance.ip_address : instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
-        host['dns_name'] = instance.dns_name
+        host['dns_name'] = instance.private_dns_name
         @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{instance.dns_name}")
       end
 
