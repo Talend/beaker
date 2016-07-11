@@ -316,7 +316,7 @@ module Beaker
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
-          :network_interfaces =>  [{device_index: 0,
+          :network_interfaces =>  [{device_index: 1,
                                     delete_on_termination: true,
                                     associate_public_ip_address: true}
           ] }
