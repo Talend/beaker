@@ -316,7 +316,12 @@ module Beaker
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
-          :network_interfaces => [{associate_public_ip_address: true, }]}
+          :network_interfaces => [{ network_interfaces: [{device_index: 0,
+                                                          subnet_id: subnet_id,
+                                                          groups:  [security_group.group_id, ping_security_group.group_id],
+                                                          delete_on_termination: true,
+                                                          associate_public_ip_address: true}
+          ] }
 
 
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
@@ -490,31 +495,31 @@ module Beaker
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
         @ec2.create_tags({
-                            resources: [ instance.instance_id], # required
-                            tags: [ # required
+                             resources: [ instance.instance_id], # required
+                             tags: [ # required
 
-                                {
-                                    key: "jenkins_build_url",
-                                    value: @options[:jenkins_build_url]||"unknown",
-                                },
-                                {
-                                    key: "Name",
-                                    value: host.name,
-                                },
-                                {
-                                    key: "department",
-                                    value: @options[:department],
-                                },
-                                {
-                                    key: "project",
-                                    value: @options[:project],
-                                },
-                                {
-                                    key: "created_by",
-                                    value: @options[:created_by],
-                                },
-                            ],
-                        })
+                                 {
+                                     key: "jenkins_build_url",
+                                     value: @options[:jenkins_build_url]||"unknown",
+                                 },
+                                 {
+                                     key: "Name",
+                                     value: host.name,
+                                 },
+                                 {
+                                     key: "department",
+                                     value: @options[:department],
+                                 },
+                                 {
+                                     key: "project",
+                                     value: @options[:project],
+                                 },
+                                 {
+                                     key: "created_by",
+                                     value: @options[:created_by],
+                                 },
+                             ],
+                         })
 
         host[:host_tags].each do |name, val|
           @ec.create_tags({
