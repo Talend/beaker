@@ -442,7 +442,7 @@ module Beaker
       # Wait for each node to reach status :running
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
-        pp instance
+        pp x
         name = x.private_dns_name
         instance = x
 
