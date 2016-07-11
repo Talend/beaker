@@ -316,10 +316,7 @@ module Beaker
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
-          :network_interfaces =>  [{device_index: 0,
-                                    delete_on_termination: true,
-                                    associate_public_ip_address: true}
-          ] }
+          }
 
 
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
@@ -538,7 +535,7 @@ module Beaker
       # Obtain the IP addresses and dns_name for each host
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
-        instance = host['instance'].instances[0]
+        instance = @ec2.describe_instances({instance_ids: [host['instance'].instances[0]]}).reservations[0].instances[0]
         host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
         host['dns_name'] = instance.public_dns_name || instance.private_dns_name
