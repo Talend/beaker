@@ -485,6 +485,7 @@ module Beaker
     def add_tags
       @hosts.each do |host|
         instance = host['instance'].instances[0]
+        pp instance
 
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
