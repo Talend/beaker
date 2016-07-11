@@ -495,7 +495,7 @@ module Beaker
 
                                 {
                                     key: "jenkins_build_url",
-                                    value: @options[:jenkins_build_url],
+                                    value: @options[:jenkins_build_url]||"unknown",
                                 },
                                 {
                                     key: "Name",
@@ -503,11 +503,11 @@ module Beaker
                                 },
                                 {
                                     key: "department",
-                                    value: @options[:project],
+                                    value: @options[:department],
                                 },
                                 {
                                     key: "project",
-                                    value: @options[:department],
+                                    value: @options[:project],
                                 },
                                 {
                                     key: "created_by",
