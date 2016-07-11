@@ -317,7 +317,6 @@ module Beaker
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
           :network_interfaces =>  [{device_index: 0,
-                                    subnet_id: subnet_id,
                                     groups:  [security_group.group_id, ping_security_group.group_id],
                                     delete_on_termination: true,
                                     associate_public_ip_address: true}
