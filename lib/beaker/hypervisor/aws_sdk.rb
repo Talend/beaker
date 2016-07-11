@@ -447,29 +447,38 @@ module Beaker
         instance = x[:instance].instances[0]
 
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
+        @ec2.wait_until(:instance_running, instance_ids:[name]) do |w|
+           
+            # seconds between each attempt
+            w.interval = 15
+           
+            # maximum number of polling attempts before giving up
+            w.max_attempts = 30
+           
+        end
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
         # TODO: shold probably be a in a shared method somewhere
-        for tries in 1..10
-          begin
-            if block_given?
-              test_result = yield instance
-            else
-              test_result = @ec2.describe_instance_status({instance_ids: [name]}).instance_statuses[0].instance_state.name == status
-              pp test_result
-            end
-            if test_result
-              # Always sleep, so the next command won't cause a throttle
-              backoff_sleep(tries)
-              break
-            elsif tries == 10
-              raise "Instance never reached state #{status}"
-            end
-          rescue Aws::EC2::Errors::ServiceError => e
-            @logger.debug("Instance #{name} not yet available (#{e})")
-          end
-          backoff_sleep(tries)
-        end
+        # for tries in 1..10
+        #   begin
+        #     if block_given?
+        #       test_result = yield instance
+        #     else
+        #       test_result = @ec2.describe_instance_status({instance_ids: [name]}).instance_statuses[0].instance_state.name == status
+        #       pp test_result
+        #     end
+        #     if test_result
+        #       # Always sleep, so the next command won't cause a throttle
+        #       backoff_sleep(tries)
+        #       break
+        #     elsif tries == 10
+        #       raise "Instance never reached state #{status}"
+        #     end
+        #   rescue Aws::EC2::Errors::ServiceError => e
+        #     @logger.debug("Instance #{name} not yet available (#{e})")
+        #   end
+        #   backoff_sleep(tries)
+        # end
       end
     end
 
