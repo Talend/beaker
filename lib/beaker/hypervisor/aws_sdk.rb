@@ -408,7 +408,7 @@ module Beaker
         end
         @logger.notify("aws-sdk: launch instances requiring no subnet")
         no_subnet_hosts.each do |host|
-          instance = create_instance(host, ami_spec, nil)
+          instance = create_instance(host, ami_spec, nil).instances
           instances.push({:instance => instance, :host => host})
         end
         wait_for_status(:running, instances)
@@ -454,7 +454,7 @@ module Beaker
             if block_given?
               test_result = yield instance
             else
-              test_result = instance.state == status
+              test_result = instance.state.name == status
             end
             if test_result
               # Always sleep, so the next command won't cause a throttle
