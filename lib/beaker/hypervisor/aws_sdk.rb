@@ -456,6 +456,7 @@ module Beaker
               test_result = yield instance
             else
               test_result = @ec2.describe_instance_status({instance_ids: [name]}).instance_statuses[0].instance_state.name == status
+              pp test_result
             end
             if test_result
               # Always sleep, so the next command won't cause a throttle
