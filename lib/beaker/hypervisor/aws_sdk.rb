@@ -408,7 +408,7 @@ module Beaker
         end
         @logger.notify("aws-sdk: launch instances requiring no subnet")
         no_subnet_hosts.each do |host|
-          instance = create_instance(host, ami_spec, nil).instances
+          instance = create_instance(host, ami_spec, nil)
           instances.push({:instance => instance, :host => host})
         end
         wait_for_status(:running, instances)
@@ -444,7 +444,7 @@ module Beaker
       instances.each do |x|
         pp x
         name = x.private_dns_name
-        instance = x
+        instance = x.instances[0]
 
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
         # Here we keep waiting for the machine state to reach ':running' with an
