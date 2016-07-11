@@ -323,6 +323,7 @@ module Beaker
 
         config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
         resp = @ec2.run_instances( config )
+        puts 'Response: '
         pp resp
         resp
       end
@@ -444,7 +445,7 @@ module Beaker
     # @api private
     def wait_for_status(status, instances, &block)
       # Wait for each node to reach status :running
-
+      puts "Wait_for_statuis: "
       pp instances
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
@@ -453,7 +454,8 @@ module Beaker
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
-        # TODO: should probably be a in a shared method somewhere
+        # TODO: shold probably be a in a shared method somewhere
+        puts "Wait_for_statuis: instance"
         pp instance
         for tries in 1..10
           begin
