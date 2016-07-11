@@ -443,7 +443,7 @@ module Beaker
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
         pp x
-        name = x[:instance].instances.private_dns_name
+        name = x[:instance].instances[0].private_dns_name
         instance = x[:instance].instances[0]
 
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
