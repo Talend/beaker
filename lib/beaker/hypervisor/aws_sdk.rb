@@ -539,7 +539,7 @@ module Beaker
         host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
         host['dns_name'] = instance.private_dns_name
-        @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{instance.private_dns_name")
+        @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{instance.private_dns_name}")
       end
 
       nil
