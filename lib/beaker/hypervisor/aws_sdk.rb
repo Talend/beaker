@@ -329,6 +329,7 @@ module Beaker
 
 
         config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
+        pp config
         resp = @ec2.run_instances( config )
         puts 'Response: '
         pp resp
@@ -452,8 +453,6 @@ module Beaker
     # @api private
     def wait_for_status(status, instances, &block)
       # Wait for each node to reach status :running
-      puts "Wait_for_statuis: "
-      pp instances
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
         name = x[:name]
