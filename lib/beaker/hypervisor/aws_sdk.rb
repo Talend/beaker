@@ -291,49 +291,49 @@ module Beaker
         if image.root_device_type == "ebs"
           orig_bdm = image.block_device_mappings[0]
           @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_h}")
-            block_device_mappings << {
-                :device_name => orig_bdm.device_name,
-                :ebs => {
-                    # Change the default size of the root volume.
-                    :volume_size => host['volume_size'] || orig_bdm.ebs.volume_size,
-                    # This is required to override the images default for
-                    # delete_on_termination, forcing all volumes to be deleted once the
-                    # instance is terminated.
-                    :delete_on_termination => true,
-                }
-            }
-          end
+          block_device_mappings << {
+              :device_name => orig_bdm.device_name,
+              :ebs => {
+                  # Change the default size of the root volume.
+                  :volume_size => host['volume_size'] || orig_bdm.ebs.volume_size,
+                  # This is required to override the images default for
+                  # delete_on_termination, forcing all volumes to be deleted once the
+                  # instance is terminated.
+                  :delete_on_termination => true,
+              }
+          }
         end
-
-        security_group = ensure_group(vpc || region, Beaker::EC2Helper.amiports(host))
-        #check if ping is enabled
-        ping_security_group = ensure_ping_group(vpc || region)
-
-        msg = "aws-sdk: launching %p on %p using %p/%p%s" %
-            [host.name, amitype, amisize, image_type,
-             subnet_id ? ("in %p" % subnet_id) : '']
-        @logger.notify(msg)
-        config = {
-            :min_count => 1,
-            :max_count => 1,
-            :image_id => image_id,
-            :monitoring => { enabled: true },
-            :key_name => ensure_key_pair(region).key_name,
-            :security_groups => [security_group.group_name, ping_security_group.group_name],
-            :instance_type => amisize,
-            :disable_api_termination => false,
-            :instance_initiated_shutdown_behavior => "terminate",
-            :subnet => subnet_id,
-        }
-
-
-        config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-        pp config
-        resp = @ec2.run_instances( config )
-        puts 'Response: '
-        pp resp
-        resp
       end
+
+      security_group = ensure_group(vpc || region, Beaker::EC2Helper.amiports(host))
+      #check if ping is enabled
+      ping_security_group = ensure_ping_group(vpc || region)
+
+      msg = "aws-sdk: launching %p on %p using %p/%p%s" %
+          [host.name, amitype, amisize, image_type,
+           subnet_id ? ("in %p" % subnet_id) : '']
+      @logger.notify(msg)
+      config = {
+          :min_count => 1,
+          :max_count => 1,
+          :image_id => image_id,
+          :monitoring => { enabled: true },
+          :key_name => ensure_key_pair(region).key_name,
+          :security_groups => [security_group.group_name, ping_security_group.group_name],
+          :instance_type => amisize,
+          :disable_api_termination => false,
+          :instance_initiated_shutdown_behavior => "terminate",
+          :subnet => subnet_id,
+      }
+
+
+      config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
+      pp config
+      resp = @ec2.run_instances( config )
+      puts 'Response: '
+      pp resp
+      resp
+
     end
 
     # For each host, create an EC2 instance in one of the specified
