@@ -316,8 +316,7 @@ module Beaker
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
-          associate_public_ip_address: true,
-      }
+          :network_interfaces => [{associate_public_ip_address: true, }]}
 
 
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
