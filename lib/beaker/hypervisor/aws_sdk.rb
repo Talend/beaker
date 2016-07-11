@@ -76,7 +76,6 @@ module Beaker
     # @return [void]
     def kill_instances(instances)
       instances.each do |instance|
-        pp instance
         if !instance.nil? and instance.exists?
           @logger.notify("aws-sdk: killing EC2 instance #{instance.id}")
           instance.terminate
@@ -237,13 +236,6 @@ module Beaker
       amisize = host['amisize'] || 'm1.small'
       vpc_id = host['vpc_id'] || @options['vpc_id'] || nil
 
-      puts "Calling create_instance"
-      puts 'with '
-      pp amitype
-      pp amisize
-      pp vpc_id
-      puts ' '
-
       if vpc_id and !subnet_id
         raise RuntimeError, "A subnet_id must be provided with a vpc_id"
       end
@@ -328,11 +320,7 @@ module Beaker
 
 
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-      pp config
-      resp = @ec2.run_instances( config )
-      puts 'Response: '
-      pp resp
-      resp
+      @ec2.run_instances( config )
 
     end
 
@@ -456,6 +444,7 @@ module Beaker
       instances.each do |x|
         name = x[:name]
         instance = x[:instance]
+        pp instance
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
@@ -465,7 +454,7 @@ module Beaker
             if block_given?
               test_result = yield instance
             else
-              test_result = instance.status == status
+              test_result = instance.state == status
             end
             if test_result
               # Always sleep, so the next command won't cause a throttle
