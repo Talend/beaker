@@ -442,9 +442,10 @@ module Beaker
       # Wait for each node to reach status :running
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
-        name = x[0].private_dns_name
-        instance = x[0]
         pp instance
+        name = x.private_dns_name
+        instance = x
+
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
