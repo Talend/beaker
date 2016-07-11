@@ -489,7 +489,7 @@ module Beaker
 
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
-        @ec.create_tags({
+        @ec2.create_tags({
                             resources: [ instance.instance_id], # required
                             tags: [ # required
 
