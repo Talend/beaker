@@ -536,7 +536,7 @@ module Beaker
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
         instance = host['instance'].instances[0]
-        host['ip'] = instance.ip_address ? instance.ip_address : instance.private_ip_address
+        host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
         host['dns_name'] = instance.private_dns_name
         @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{instance.dns_name}")
