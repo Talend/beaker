@@ -316,6 +316,7 @@ module Beaker
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
+          associate_public_ip_address: true,
       }
 
 
@@ -538,8 +539,8 @@ module Beaker
         instance = host['instance'].instances[0]
         host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
-        host['dns_name'] = instance.private_dns_name
-        @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{instance.private_dns_name}")
+        host['dns_name'] = instance.public_dns_name || instance.private_dns_name
+        @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{host['dns_name']}")
       end
 
       nil
