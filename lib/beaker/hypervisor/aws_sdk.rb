@@ -448,13 +448,9 @@ module Beaker
 
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
         @ec2.wait_until(:instance_running, instance_ids:[name]) do |w|
-           
-            # seconds between each attempt
-            w.interval = 15
-           
-            # maximum number of polling attempts before giving up
-            w.max_attempts = 30
-           
+          w.interval = 15  
+          # maximum number of polling attempts before giving up
+          w.max_attempts = 30
         end
         # Here we keep waiting for the machine state to reach ':running' with an
         # exponential backoff for each poll.
