@@ -290,7 +290,7 @@ module Beaker
       if image.root_device_type == "ebs"
         if image.root_device_type == "ebs"
           orig_bdm = image.block_device_mappings()
-          @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_hash}")
+          @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_h}")
           orig_bdm.each do |device_name, rest|
             block_device_mappings << {
                 :device_name => device_name,
