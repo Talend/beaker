@@ -485,7 +485,6 @@ module Beaker
     def add_tags
       @hosts.each do |host|
         instance = host['instance'].instances[0]
-        pp instance
 
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
@@ -534,6 +533,8 @@ module Beaker
     def populate_dns
       # Obtain the IP addresses and dns_name for each host
       @hosts.each do |host|
+        pp instance
+
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
         instance = @ec2.describe_instances({instance_ids: [host['instance'].instances[0]]}).reservations[0].instances[0]
         host['ip'] = instance.public_ip_address || instance.private_ip_address
