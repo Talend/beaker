@@ -76,10 +76,10 @@ module Beaker
     # @return [void]
     def kill_instances(instances)
       instances.each do |instance|
-          @logger.notify("aws-sdk: killing EC2 instance #{instance.instances[0].instance_id}")
-          pp @ec2.terminate_instances({instance_ids: [instance.instances[0].instance_id]})
-        end
+        @logger.notify("aws-sdk: killing EC2 instance #{instance.instances[0].instance_id}")
+        pp @ec2.terminate_instances({instance_ids: [instance.instances[0].instance_id]})
       end
+
       nil
     end
 
@@ -315,7 +315,7 @@ module Beaker
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
           :subnet => subnet_id,
-          }
+      }
 
 
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
