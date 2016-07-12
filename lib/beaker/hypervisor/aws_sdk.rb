@@ -776,7 +776,7 @@ module Beaker
         keypair_collection =  @ec2.describe_key_pairs({filters: [{name: 'key-name',values: [aws_name_filter]}]})
         keypair_collection.each do |keypair|
           keypairs_by_region[region] ||= []
-          keypairs_by_region[region] << keypair.name
+          keypairs_by_region[region] << keypair.key_pairs[0].key_name
         end
       end
       keypairs_by_region
