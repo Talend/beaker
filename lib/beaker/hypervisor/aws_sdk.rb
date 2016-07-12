@@ -76,9 +76,8 @@ module Beaker
     # @return [void]
     def kill_instances(instances)
       instances.each do |instance|
-        if !instance.nil? and instance.exists?
-          @logger.notify("aws-sdk: killing EC2 instance #{instance.id}")
-          instance.terminate
+          @logger.notify("aws-sdk: killing EC2 instance #{instance.instances[0].instance_id}")
+          pp @ec2.terminate_instances({instance_ids: [instance.instances[0].instance_id]})
         end
       end
       nil
