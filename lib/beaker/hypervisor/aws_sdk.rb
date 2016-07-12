@@ -77,7 +77,7 @@ module Beaker
     def kill_instances(instances)
       instances.each do |instance|
         @logger.notify("aws-sdk: killing EC2 instance #{instance.instances[0].instance_id}")
-        pp @ec2.terminate_instances({instance_ids: [instance.instances[0].instance_id]})
+        @ec2.terminate_instances({instance_ids: [instance.instances[0].instance_id]})
       end
 
       nil
@@ -441,9 +441,7 @@ module Beaker
       # Wait for each node to reach status :running
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
-        pp x
         name = x[:instance].instances[0].instance_id
-        instance = x[:instance].instances[0]
 
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
         @ec2.wait_until(:instance_running, instance_ids:[name]) do |w|
@@ -534,7 +532,6 @@ module Beaker
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
         instance = @ec2.describe_instances({instance_ids: [ host['instance'].instances[0].instance_id ]}).reservations[0].instances[0]
-        pp instance
         host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
         host['dns_name'] = instance.public_dns_name || instance.private_dns_name
