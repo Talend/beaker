@@ -746,7 +746,7 @@ module Beaker
       region_keypairs_hash = my_key_pairs(keypair_name_filter)
       region_keypairs_hash.each_pair do |region, keypair_name_array|
         keypair_name_array.each do |keypair_name|
-          @ec2.delete_key_pair({key_name: [keypair_name.to_s]})
+          @ec2.delete_key_pair({key_name: keypair_name.to_s})
         end
       end
     end
