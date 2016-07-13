@@ -789,7 +789,7 @@ module Beaker
       kp = @ec2.describe_key_pairs({filters: [{name: "key-name",values: [pair_name]}] }).key_pairs[0]
       unless kp.nil?
         @logger.debug("aws-sdk: delete key pair in region: #{region.name}")
-        @ec2.delete_key_pair({key_name: [pair_name]})
+        @ec2.delete_key_pair({key_name: pair_name})
       end
     end
 
