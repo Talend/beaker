@@ -242,33 +242,33 @@ module Beaker
     end
 
     describe '#instance_by_id' do
-      subject { aws.instance_by_id('my_id') }
-      it { is_expected.to be_instance_of(AWS::EC2::Instance) }
+      subject { aws.instance_by_id('i-96ebd041').inspect }
+      it { is_expected.to match(/Aws::EC2::Types::Instance/) }
     end
 
     describe '#instances' do
-      subject { aws.instances }
-      it { is_expected.to be_instance_of(AWS::EC2::InstanceCollection) }
+      subject { aws.instances.inspect }
+      it { is_expected.to match(/Aws::EC2::Types::Instance/) }
     end
 
     describe '#vpc_by_id' do
-      subject { aws.vpc_by_id('my_id') }
-      it { is_expected.to be_instance_of(AWS::EC2::VPC) }
+      subject { aws.vpc_by_id('vpc-22d93b47').inspect }
+      it { is_expected.to match(/Aws::EC2::Types::Vpc/)}
     end
 
     describe '#vpcs' do
-      subject { aws.vpcs }
-      it { is_expected.to be_instance_of(AWS::EC2::VPCCollection) }
+      subject { aws.vpcs.inspect }
+      it { is_expected.to match(/Aws::EC2::Types::Vpc/) }
     end
 
     describe '#security_group_by_id' do
-      subject { aws.security_group_by_id('my_id') }
-      it { is_expected.to be_instance_of(AWS::EC2::SecurityGroup) }
+      subject { aws.security_group_by_id('sg-0e3cfc6b').inspect }
+      it { is_expected.to match(/Aws::EC2::Types::SecurityGroup/) }
     end
 
     describe '#security_groups' do
-      subject { aws.security_groups }
-      it { is_expected.to be_instance_of(AWS::EC2::SecurityGroupCollection) }
+      subject { aws.security_groups.inspect }
+      it { is_expected.to match(/Aws::EC2::Types::SecurityGroup/) }
     end
 
     describe '#kill_zombies' do
@@ -361,8 +361,8 @@ module Beaker
       end
 
       context 'with an invalid instance' do
-        it 'raises AWS::EC2::Errors::InvalidInstanceID::NotFound' do
-          expect(aws_instance).to receive(:status).and_raise(AWS::EC2::Errors::InvalidInstanceID::NotFound).exactly(10).times
+        it 'raises Aws::EC2::Errors::ServiceError' do
+          expect(aws_instance).to receive(:status).and_raise(Aws::EC2::Errors::ServiceError).exactly(10).times
           allow(aws).to receive(:backoff_sleep).at_most(10).times
           expect(wait_for_status).to eq(instance_set)
         end
@@ -587,10 +587,10 @@ module Beaker
 
       it 'set password to instance id of the host' do
         instance_mock = Object.new
-        allow( instance_mock ).to receive(:id).and_return("i-842018")
+        allow( instance_mock ).to receive(:id).and_return("i-96ebd041")
         ns_host["instance"]=instance_mock
         enable_root_netscaler
-        expect(ns_host['ssh'][:password]).to eql("i-842018")
+        expect(ns_host['ssh'][:password]).to eql("i-96ebd041")
       end
     end
 

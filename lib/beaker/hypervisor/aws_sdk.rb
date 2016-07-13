@@ -1,7 +1,8 @@
-require 'aws/ec2'
+require 'aws-sdk'
 require 'set'
 require 'zlib'
 require 'beaker/hypervisor/ec2_helper'
+require 'pp'
 
 module Beaker
   # This is an alternate EC2 driver that implements direct API access using
@@ -26,16 +27,16 @@ module Beaker
       creds = load_credentials()
 
       config = {
-        :access_key_id => creds[:access_key],
-        :secret_access_key => creds[:secret_key],
-        :logger => Logger.new($stdout),
-        :log_level => :debug,
-        :log_formatter => AWS::Core::LogFormatter.colored,
-        :max_retries => 12,
+          :access_key_id => creds[:access_key],
+          :secret_access_key => creds[:secret_key],
+          :logger => Logger.new($stdout),
+          :log_level => :debug,
+          :log_formatter => Aws::Log::Formatter.colored,
+          # :max_retries => 12,
       }
-      AWS.config(config)
+      Aws.config.update(config)
 
-      @ec2 = AWS::EC2.new()
+      @ec2 = Aws::EC2::Client.new(region: 'us-east-1')
     end
 
     # Provision all hosts on EC2 using the AWS::EC2 API
@@ -75,11 +76,10 @@ module Beaker
     # @return [void]
     def kill_instances(instances)
       instances.each do |instance|
-        if !instance.nil? and instance.exists?
-          @logger.notify("aws-sdk: killing EC2 instance #{instance.id}")
-          instance.terminate
-        end
+        @logger.notify("aws-sdk: killing EC2 instance #{instance.instances[0].instance_id}")
+        @ec2.terminate_instances({instance_ids: [instance.instances[0].instance_id]})
       end
+
       nil
     end
 
@@ -104,9 +104,9 @@ module Beaker
     # @param [Regex] status The regular expression to match against the instance's status
     def log_instances(key = key_name, status = /running/)
       instances = []
-      @ec2.regions.each do |region|
+      @ec2.describe_regions.regions.each do |region|
         @logger.debug "Reviewing: #{region.name}"
-        @ec2.regions[region.name].instances.each do |instance|
+        @ec2.describe_instances..reservations[0].instances.each do |instance|
           if (instance.key_name =~ /#{key}/) and (instance.status.to_s =~ status)
             instances << instance
           end
@@ -125,14 +125,14 @@ module Beaker
     # @param [String] id The id of the instance to return
     # @return [AWS::EC2::Instance] An AWS::EC2 instance object
     def instance_by_id(id)
-      @ec2.instances[id]
+      @ec2.describe_instances({ instance_ids: [id.to_s] }).reservations[0].instances.first
     end
 
     # Return all instances currently on ec2.
     # @see AwsSdk#instance_by_id
     # @return [AWS::EC2::InstanceCollection] An array of AWS::EC2 instance objects
     def instances
-      @ec2.instances
+      @ec2.describe_instances.reservations[0].instances
     end
 
     # Provided an id return a VPC object.
@@ -140,14 +140,14 @@ module Beaker
     # @param [String] id The id of the VPC to return
     # @return [AWS::EC2::VPC] An AWS::EC2 vpc object
     def vpc_by_id(id)
-      @ec2.vpcs[id]
+      @ec2.describe_vpcs({vpc_ids: [id]}).vpcs.first
     end
 
     # Return all VPCs currently on ec2.
     # @see AwsSdk#vpc_by_id
     # @return [AWS::EC2::VPCCollection] An array of AWS::EC2 vpc objects
     def vpcs
-      @ec2.vpcs
+      @ec2.describe_vpcs.vpcs
     end
 
     # Provided an id return a security group object
@@ -155,14 +155,14 @@ module Beaker
     # @param [String] id The id of the security group to return
     # @return [AWS::EC2::SecurityGroup] An AWS::EC2 security group object
     def security_group_by_id(id)
-      @ec2.security_groups[id]
+      @ec2.describe_security_groups(group_ids: [id]).security_groups
     end
 
     # Return all security groups currently on ec2.
     # @see AwsSdk#security_goup_by_id
     # @return [AWS::EC2::SecurityGroupCollection] An array of AWS::EC2 security group objects
     def security_groups
-      @ec2.security_groups
+      @ec2.describe_security_groups.security_groups
     end
 
     # Shutdown and destroy ec2 instances idenfitied by key that have been alive
@@ -175,21 +175,21 @@ module Beaker
       #examine all available regions
       kill_count = 0
       time_now = Time.now.getgm #ec2 uses GM time
-      @ec2.regions.each do |region|
+      @ec2.describe_regions.regions.each do |region|
         @logger.debug "Reviewing: #{region.name}"
         # Note: don't use instances.each here as that funtion doesn't allow proper rescue from error states
-        instances = @ec2.regions[region.name].instances
+        instances = @ec2.describe_instances.reservations[0].instances
         instances.each do |instance|
           begin
             if (instance.key_name =~ /#{key}/)
               @logger.debug "Examining #{instance.id} (keyname: #{instance.key_name}, launch time: #{instance.launch_time}, status: #{instance.status})"
               if ((time_now - instance.launch_time) >  max_age*60*60) and instance.status.to_s !~ /terminated/
                 @logger.debug "Kill! #{instance.id}: #{instance.key_name} (Current status: #{instance.status})"
-                instance.terminate()
+                @ec2.terminate_instances({instance_ids: [instance.instance_id]})
                 kill_count += 1
               end
             end
-          rescue AWS::Core::Resource::NotFound, AWS::EC2::Errors => e
+          rescue Aws::EC2::Errors::ServiceError => e
             @logger.debug "Failed to remove instance: #{instance.id}, #{e}"
           end
         end
@@ -244,30 +244,31 @@ module Beaker
       if not image_type
         raise RuntimeError, "No snapshot/image_type provided for EC2 provisioning"
       end
+
       ami = ami_spec[amitype]
       ami_region = ami[:region]
 
       # Main region object for ec2 operations
-      region = @ec2.regions[ami_region]
+      region =  @ec2.describe_regions( region_names: [ami_region]).regions[0].region_name #@ec2.regions[ami_region]
 
       # If we haven't defined a vpc_id then we use the default vpc for the provided region
       if !vpc_id
         @logger.notify("aws-sdk: filtering available vpcs in region by 'isDefault")
-        filtered_vpcs = region.client.describe_vpcs(:filters => [{:name => 'isDefault', :values => ['true']}])
-        if !filtered_vpcs[:vpc_set].empty?
-          vpc_id = filtered_vpcs[:vpc_set].first[:vpc_id]
+        filtered_vpcs = @ec2.describe_vpcs(:filters => [{:name => 'isDefault', :values => ['true']}]).vpcs
+        if !filtered_vpcs.empty?
+          vpc_id = filtered_vpcs.first.vpc_id
         else #there's no default vpc, use nil
           vpc_id = nil
         end
       end
 
       # Grab the vpc object based upon provided id
-      vpc = vpc_id ? region.vpcs[vpc_id] : nil
+      vpc = vpc_id ? @ec2.describe_vpcs({ vpc_ids: [ vpc_id ]}).vpcs[0] : nil
 
       # Grab image object
       image_id = ami[:image][image_type.to_sym]
       @logger.notify("aws-sdk: Checking image #{image_id} exists and getting its root device")
-      image = region.images[image_id]
+      image = @ec2.describe_images( {image_ids: [ image_id ]} ).images.first
       if image.nil? and not image.exists?
         raise RuntimeError, "Image not found: #{image_id}"
       end
@@ -277,20 +278,20 @@ module Beaker
       # Transform the images block_device_mappings output into a format
       # ready for a create.
       block_device_mappings = []
-      if image.root_device_type == :ebs
-        orig_bdm = image.block_device_mappings()
-        @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_hash}")
-        orig_bdm.each do |device_name, rest|
+      if image.root_device_type == "ebs"
+        if image.root_device_type == "ebs"
+          orig_bdm = image.block_device_mappings[0]
+          @logger.notify("aws-sdk: Image block_device_mappings: #{orig_bdm.to_h}")
           block_device_mappings << {
-            :device_name => device_name,
-            :ebs => {
-              # Change the default size of the root volume.
-              :volume_size => host['volume_size'] || rest[:volume_size],
-              # This is required to override the images default for
-              # delete_on_termination, forcing all volumes to be deleted once the
-              # instance is terminated.
-              :delete_on_termination => true,
-            }
+              :device_name => orig_bdm.device_name,
+              :ebs => {
+                  # Change the default size of the root volume.
+                  :volume_size => host['volume_size'] || orig_bdm.ebs.volume_size,
+                  # This is required to override the images default for
+                  # delete_on_termination, forcing all volumes to be deleted once the
+                  # instance is terminated.
+                  :delete_on_termination => true,
+              }
           }
         end
       end
@@ -300,22 +301,26 @@ module Beaker
       ping_security_group = ensure_ping_group(vpc || region)
 
       msg = "aws-sdk: launching %p on %p using %p/%p%s" %
-            [host.name, amitype, amisize, image_type,
-             subnet_id ? ("in %p" % subnet_id) : '']
+          [host.name, amitype, amisize, image_type,
+           subnet_id ? ("in %p" % subnet_id) : '']
       @logger.notify(msg)
       config = {
-        :count => 1,
-        :image_id => image_id,
-        :monitoring_enabled => true,
-        :key_pair => ensure_key_pair(region),
-        :security_groups => [security_group, ping_security_group],
-        :instance_type => amisize,
-        :disable_api_termination => false,
-        :instance_initiated_shutdown_behavior => "terminate",
-        :subnet => subnet_id,
+          :min_count => 1,
+          :max_count => 1,
+          :image_id => image_id,
+          :monitoring => { enabled: true },
+          :key_name => ensure_key_pair(region).key_name,
+          :security_groups => [security_group.group_name, ping_security_group.group_name],
+          :instance_type => amisize,
+          :disable_api_termination => false,
+          :instance_initiated_shutdown_behavior => "terminate",
+          :subnet => subnet_id,
       }
+
+
       config[:block_device_mappings] = block_device_mappings if image.root_device_type == :ebs
-      region.instances.create(config)
+      @ec2.run_instances( config )
+
     end
 
     # For each host, create an EC2 instance in one of the specified
@@ -348,7 +353,7 @@ module Beaker
             instance = create_instance(host, ami_spec, subnet_id)
             instances_created.push({:instance => instance, :host => host})
             break
-          rescue AWS::EC2::Errors::InsufficientInstanceCapacity => ex
+          rescue Aws::EC2::Errors::InsufficientInstanceCapacity => ex
             @logger.notify("aws-sdk: hit #{subnet_id} capacity limit; moving on")
             subnet_i = (subnet_i + 1) % shuffnets.length
           end
@@ -436,30 +441,13 @@ module Beaker
       # Wait for each node to reach status :running
       @logger.notify("aws-sdk: Waiting for all hosts to be #{status}")
       instances.each do |x|
-        name = x[:name]
-        instance = x[:instance]
+        name = x[:instance].instances[0].instance_id
+
         @logger.notify("aws-sdk: Wait for node #{name} to be #{status}")
-        # Here we keep waiting for the machine state to reach ':running' with an
-        # exponential backoff for each poll.
-        # TODO: should probably be a in a shared method somewhere
-        for tries in 1..10
-          begin
-            if block_given?
-              test_result = yield instance
-            else
-              test_result = instance.status == status
-            end
-            if test_result
-              # Always sleep, so the next command won't cause a throttle
-              backoff_sleep(tries)
-              break
-            elsif tries == 10
-              raise "Instance never reached state #{status}"
-            end
-          rescue AWS::EC2::Errors::InvalidInstanceID::NotFound => e
-            @logger.debug("Instance #{name} not yet available (#{e})")
-          end
-          backoff_sleep(tries)
+        @ec2.wait_until(:instance_running, instance_ids:[name]) do |w|
+          w.interval = 15
+          # maximum number of polling attempts before giving up
+          w.max_attempts = 30
         end
       end
     end
@@ -493,18 +481,42 @@ module Beaker
     # @api private
     def add_tags
       @hosts.each do |host|
-        instance = host['instance']
+        instance = host['instance'].instances[0]
 
         # Define tags for the instance
         @logger.notify("aws-sdk: Add tags for #{host.name}")
-        instance.add_tag("jenkins_build_url", :value => @options[:jenkins_build_url])
-        instance.add_tag("Name", :value => host.name)
-        instance.add_tag("department", :value => @options[:department])
-        instance.add_tag("project", :value => @options[:project])
-        instance.add_tag("created_by", :value => @options[:created_by])
+        @ec2.create_tags({
+                             resources: [ instance.instance_id], # required
+                             tags: [ # required
+
+                                 {
+                                     key: "jenkins_build_url",
+                                     value: @options[:jenkins_build_url]||"unknown",
+                                 },
+                                 {
+                                     key: "Name",
+                                     value: host.name,
+                                 },
+                                 {
+                                     key: "department",
+                                     value: @options[:department],
+                                 },
+                                 {
+                                     key: "project",
+                                     value: @options[:project],
+                                 },
+                                 {
+                                     key: "created_by",
+                                     value: @options[:created_by],
+                                 },
+                             ],
+                         })
 
         host[:host_tags].each do |name, val|
-          instance.add_tag(name.to_s, :value => val)
+          @ec.create_tags({
+                              resources: [ instance.instance_id], # required
+                              tags: [ {key: name.to_s, value: val } ]
+                          })
         end
       end
 
@@ -519,11 +531,11 @@ module Beaker
       # Obtain the IP addresses and dns_name for each host
       @hosts.each do |host|
         @logger.notify("aws-sdk: Populate DNS for #{host.name}")
-        instance = host['instance']
-        host['ip'] = instance.ip_address ? instance.ip_address : instance.private_ip_address
+        instance = @ec2.describe_instances({instance_ids: [ host['instance'].instances[0].instance_id ]}).reservations[0].instances[0]
+        host['ip'] = instance.public_ip_address || instance.private_ip_address
         host['private_ip'] = instance.private_ip_address
-        host['dns_name'] = instance.dns_name
-        @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{instance.dns_name}")
+        host['dns_name'] = instance.public_dns_name || instance.private_dns_name
+        @logger.notify("aws-sdk: name: #{host.name} ip: #{host['ip']} private_ip: #{host['private_ip']} dns_name: #{host['dns_name']}")
       end
 
       nil
@@ -734,7 +746,7 @@ module Beaker
       region_keypairs_hash = my_key_pairs(keypair_name_filter)
       region_keypairs_hash.each_pair do |region, keypair_name_array|
         keypair_name_array.each do |keypair_name|
-          delete_key_pair(region, keypair_name)
+          @ec2.delete_key_pair({key_name: keypair_name.to_s})
         end
       end
     end
@@ -752,16 +764,16 @@ module Beaker
       keypairs_by_region = {}
       keyname_default = key_name()
       keyname_filtered = "#{name_filter}-*"
-      @ec2.regions.each do |region|
+      @ec2.describe_regions.regions.each do |region|
         if name_filter
           aws_name_filter = keyname_filtered
         else
           aws_name_filter = keyname_default
         end
-        keypair_collection = region.key_pairs.filter('key-name', aws_name_filter)
+        keypair_collection =  @ec2.describe_key_pairs({filters: [{name: 'key-name',values: [aws_name_filter]}]})
         keypair_collection.each do |keypair|
           keypairs_by_region[region] ||= []
-          keypairs_by_region[region] << keypair.name
+          keypairs_by_region[region] << keypair.key_pairs[0].key_name
         end
       end
       keypairs_by_region
@@ -774,10 +786,10 @@ module Beaker
     #
     # @api private
     def delete_key_pair(region, pair_name)
-      kp = region.key_pairs[pair_name]
-      if kp.exists?
+      kp = @ec2.describe_key_pairs({filters: [{name: "key-name",values: [pair_name]}] }).key_pairs[0]
+      unless kp.nil?
         @logger.debug("aws-sdk: delete key pair in region: #{region.name}")
-        kp.delete()
+        @ec2.delete_key_pair({key_name: pair_name})
       end
     end
 
@@ -790,7 +802,7 @@ module Beaker
     def create_new_key_pair(region, pair_name)
       @logger.debug("aws-sdk: generating new key pair: #{pair_name}")
       ssh_string = public_key()
-      region.key_pairs.import(pair_name, ssh_string)
+      @ec2.import_key_pair({key_name: pair_name, public_key_material: ssh_string})
     end
 
     # Return a reproducable security group identifier based on input ports
@@ -821,8 +833,7 @@ module Beaker
     def ensure_ping_group(vpc)
       @logger.notify("aws-sdk: Ensure security group exists that enables ping, create if not")
 
-      group = vpc.security_groups.filter('group-name', PING_SECURITY_GROUP_NAME).first
-
+      group =  @ec2.describe_security_groups({group_names: [PING_SECURITY_GROUP_NAME] }).security_groups[0]
       if group.nil?
         group = create_ping_group(vpc)
       end
@@ -842,7 +853,7 @@ module Beaker
       @logger.notify("aws-sdk: Ensure security group exists for ports #{ports.to_s}, create if not")
       name = group_id(ports)
 
-      group = vpc.security_groups.filter('group-name', name).first
+      group = @ec2.describe_security_groups({group_names: [name] }).security_groups[0]
 
       if group.nil?
         group = create_group(vpc, ports)
@@ -879,8 +890,7 @@ module Beaker
     def create_group(rv, ports)
       name = group_id(ports)
       @logger.notify("aws-sdk: Creating group #{name} for ports #{ports.to_s}")
-      group = rv.security_groups.create(name,
-                                        :description => "Custom Beaker security group for #{ports.to_a}")
+      group = @ec2.create_security_groups({groups_name: [name], description: "Custom Beaker security group for #{ports.to_a}" })
 
       unless ports.is_a? Set
         ports = Set.new(ports)
@@ -907,17 +917,11 @@ module Beaker
     # @param prefix [String] environment variable prefix
     # @return [Hash<Symbol, String>] ec2 credentials
     # @api private
-    def load_env_credentials(prefix='AWS')
-      provider = AWS::Core::CredentialProviders::ENVProvider.new prefix
-
-      if provider.set?
-        {
-          :access_key => provider.access_key_id,
-          :secret_key => provider.secret_access_key,
-        }
-      else
-        {}
-      end
+    def load_env_credentials
+      {
+          :access_key => ENV['AWS_ACCESS_KEY_ID'] ,
+          :secret_key => ENV['AWS_SECRET_ACCESS_KEY']
+      }
     end
     # Return a hash containing the fog credentials for EC2
     #
@@ -932,8 +936,8 @@ module Beaker
       raise "You must specify an aws_secret_access_key in your .fog file (#{dot_fog}) for ec2 instances!" unless default[:aws_secret_access_key]
 
       {
-        :access_key => default[:aws_access_key_id],
-        :secret_key => default[:aws_secret_access_key],
+          :access_key => default[:aws_access_key_id],
+          :secret_key => default[:aws_secret_access_key],
       }
     end
   end
